@@ -3,6 +3,8 @@ import { StyleSheet, Text, View, Animated, TouchableOpacity, Image, Easing } fro
 import { StatusBar } from 'expo-status-bar';
 import * as Font from 'expo-font';
 import { Audio } from 'expo-av';
+import ElementModal from './components/ElementModal';
+import { elementDescriptions, ElementDescription } from './data/elementDescriptions';
 
 const elements = [
   { symbol: 'H', name: 'Hydrogen', atomicNumber: 1, category: 'Nonmetal' },
@@ -145,6 +147,9 @@ const SPLASH_TITLE_LINES = [
 ];
 
 export default function App() {
+  const [fontsLoaded] = Font.useFonts({
+    'RobotoMono': require('./assets/fonts/Orbitron-Bold.ttf'),
+  });
   const [showSplash, setShowSplash] = useState(true);
   const [currentElement, setCurrentElement] = useState(0);
   const [isFlipped, setIsFlipped] = useState(false);
@@ -163,6 +168,8 @@ export default function App() {
     flip1: null,
     flip2: null
   });
+  const [selectedElement, setSelectedElement] = useState<ElementDescription | null>(null);
+  const [modalVisible, setModalVisible] = useState(false);
 
   // Helper function to get distributed initial positions
   const getDistributedPosition = (index: number, total: number) => {
@@ -270,9 +277,9 @@ export default function App() {
 
     const createFloatingAnimation = (element: { x: Animated.Value; y: Animated.Value; opacity: Animated.Value; speed: number }) => {
       const createRandomMovement = () => {
-        const duration = (3000 + Math.random() * 2000) / element.speed;
-        const direction = Math.random() * Math.PI * 2; // Random angle in radians
-        const distance = 10 + Math.random() * 20; // Random distance
+        const direction = Math.random() * Math.PI * 2;
+        // Increased distance range for wider movement
+        const distance = 30 + Math.random() * 50; // Increased from 10-30 to 30-80
         const targetX = Math.cos(direction) * distance;
         const targetY = Math.sin(direction) * distance;
 
@@ -280,13 +287,13 @@ export default function App() {
           Animated.sequence([
             Animated.timing(element.x, {
               toValue: targetX,
-              duration: duration,
+              duration: 4000, // Increased from default duration to 4 seconds
               useNativeDriver: true,
               easing: Easing.inOut(Easing.sin),
             }),
             Animated.timing(element.x, {
               toValue: -targetX,
-              duration: duration,
+              duration: 4000, // Increased to match
               useNativeDriver: true,
               easing: Easing.inOut(Easing.sin),
             }),
@@ -294,13 +301,13 @@ export default function App() {
           Animated.sequence([
             Animated.timing(element.y, {
               toValue: targetY,
-              duration: duration * 1.2, // Slightly different duration for more natural movement
+              duration: 4800, // Slightly longer duration for vertical movement
               useNativeDriver: true,
               easing: Easing.inOut(Easing.sin),
             }),
             Animated.timing(element.y, {
               toValue: -targetY,
-              duration: duration * 1.2,
+              duration: 4800, // Matching vertical movement duration
               useNativeDriver: true,
               easing: Easing.inOut(Easing.sin),
             }),
@@ -533,8 +540,24 @@ export default function App() {
             backAnimatedStyle
           ]}
         >
-          <Text style={styles.elementName}>{elements[currentElement].name}</Text>
-          <Text style={styles.category}>{elements[currentElement].category}</Text>
+          <View style={styles.cardContent}>
+            <Text style={styles.cardTitle}>Properties</Text>
+            <Text style={styles.cardText}>Symbol: {elements[currentElement].symbol}</Text>
+            <Text style={styles.cardText}>Name: {elements[currentElement].name}</Text>
+            <Text style={styles.cardText}>Atomic Number: {elements[currentElement].atomicNumber}</Text>
+            <Text style={styles.cardText}>Category: {elements[currentElement].category}</Text>
+            
+            <TouchableOpacity
+              style={styles.infoButton}
+              onPress={() => {
+                const element = elementDescriptions[elements[currentElement].symbol];
+                setSelectedElement(element);
+                setModalVisible(true);
+              }}
+            >
+              <Text style={styles.infoButtonText}>More Info</Text>
+            </TouchableOpacity>
+          </View>
         </Animated.View>
       </View>
 
@@ -552,6 +575,11 @@ export default function App() {
           <Text style={styles.buttonText}>Next Card</Text>
         </TouchableOpacity>
       </View>
+      <ElementModal
+        isVisible={modalVisible}
+        element={selectedElement}
+        onClose={() => setModalVisible(false)}
+      />
     </View>
   );
 }
@@ -721,5 +749,43 @@ const styles = StyleSheet.create({
     fontSize: 24,
     fontWeight: '600',
     color: 'rgba(37, 99, 235, 0.6)',
+  },
+  elementContent: {
+    width: '100%',
+    height: '100%',
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: 5,
+  },
+  cardContent: {
+    width: '100%',
+    height: '100%',
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: 20,
+  },
+  cardTitle: {
+    fontSize: 24,
+    fontWeight: 'bold',
+    color: '#ffffff',
+    marginBottom: 10,
+  },
+  cardText: {
+    fontSize: 18,
+    color: '#ffffff',
+    marginBottom: 10,
+  },
+  infoButton: {
+    backgroundColor: '#2196F3',
+    paddingHorizontal: 20,
+    paddingVertical: 10,
+    borderRadius: 20,
+    marginTop: 15,
+  },
+  infoButtonText: {
+    color: 'white',
+    fontSize: 16,
+    fontFamily: 'RobotoMono',
+    textAlign: 'center',
   },
 });
