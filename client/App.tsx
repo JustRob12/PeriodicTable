@@ -1,6 +1,8 @@
 import React, { useState, useEffect } from 'react';
-import { StyleSheet, Text, View, Animated, TouchableOpacity, Image } from 'react-native';
+import { StyleSheet, Text, View, Animated, TouchableOpacity, Image, Easing } from 'react-native';
 import { StatusBar } from 'expo-status-bar';
+import * as Font from 'expo-font';
+import { Audio } from 'expo-av';
 
 const elements = [
   { symbol: 'H', name: 'Hydrogen', atomicNumber: 1, category: 'Nonmetal' },
@@ -123,7 +125,6 @@ const elements = [
   { symbol: 'Og', name: 'Oganesson', atomicNumber: 118, category: 'Unknown' },
 ];
 
-// Color combinations for cards (front color, back color)
 const colorPairs = [
   ['#60a5fa', '#93c5fd'], // Blue
   ['#34d399', '#6ee7b7'], // Green
@@ -137,7 +138,11 @@ const colorPairs = [
   ['#f472b6', '#f9a8d4'], // Rose
 ];
 
-const SPLASH_TITLE = "Periodic Table Flash Cards";
+const SPLASH_TITLE_LINES = [
+  "Periodic",
+  "Table Flash",
+  "Cards"
+];
 
 export default function App() {
   const [showSplash, setShowSplash] = useState(true);
@@ -145,90 +150,198 @@ export default function App() {
   const [isFlipped, setIsFlipped] = useState(false);
   const [flipAnim] = useState(new Animated.Value(0));
   const fadeAnim = useState(new Animated.Value(0))[0];
-  const scaleAnim = useState(new Animated.Value(0.3))[0];
-  const titleAnimations = SPLASH_TITLE.split('').map(() => new Animated.Value(0));
+  const titleAnimations = SPLASH_TITLE_LINES.map(line => 
+    line.split('').map(() => new Animated.Value(0))
+  );
   const [currentColorPair, setCurrentColorPair] = useState(colorPairs[0]);
+  const [sounds, setSounds] = useState<{
+    splash: Audio.Sound | null;
+    flip1: Audio.Sound | null;
+    flip2: Audio.Sound | null;
+  }>({
+    splash: null,
+    flip1: null,
+    flip2: null
+  });
+
+  // Helper function to get distributed initial positions
+  const getDistributedPosition = (index: number, total: number) => {
+    const gridSize = Math.ceil(Math.sqrt(total));
+    const cellSize = 100 / gridSize;
+    const row = Math.floor(index / gridSize);
+    const col = index % gridSize;
+    return {
+      x: (col * cellSize) + (Math.random() * cellSize * 0.6),
+      y: (row * cellSize) + (Math.random() * cellSize * 0.6)
+    };
+  };
+
+  const [floatingElements] = useState(() => {
+    const total = 12; // Increased number of elements
+    return Array.from({ length: total }, (_, index) => {
+      const pos = getDistributedPosition(index, total);
+      return {
+        x: new Animated.Value(pos.x),
+        y: new Animated.Value(pos.y),
+        opacity: new Animated.Value(0),
+        element: elements[Math.floor(Math.random() * elements.length)],
+        scale: 0.3 + Math.random() * 0.4, // Slightly smaller scale range
+        speed: 0.7 + Math.random() * 0.6, // Random speed multiplier
+      };
+    });
+  });
+
+  // Load sound effects
+  useEffect(() => {
+    async function loadSounds() {
+      try {
+        const splashSound = new Audio.Sound();
+        const flip1Sound = new Audio.Sound();
+        const flip2Sound = new Audio.Sound();
+
+        await splashSound.loadAsync(require('./assets/music/splash.m4a'));
+        await flip1Sound.loadAsync(require('./assets/music/flip1.m4a'));
+        await flip2Sound.loadAsync(require('./assets/music/flip2.m4a'));
+
+        setSounds({
+          splash: splashSound,
+          flip1: flip1Sound,
+          flip2: flip2Sound
+        });
+
+        // Play splash sound immediately
+        await splashSound.playAsync();
+      } catch (error) {
+        console.log('Error loading sounds:', error);
+      }
+    }
+
+    loadSounds();
+
+    // Cleanup sounds when component unmounts
+    return () => {
+      async function unloadSounds() {
+        if (sounds.splash) await sounds.splash.unloadAsync();
+        if (sounds.flip1) await sounds.flip1.unloadAsync();
+        if (sounds.flip2) await sounds.flip2.unloadAsync();
+      }
+      unloadSounds();
+    };
+  }, []);
 
   useEffect(() => {
+    if (!sounds.splash) return;
+    
     // Animate the splash screen
     Animated.parallel([
       Animated.timing(fadeAnim, {
         toValue: 1,
-        duration: 1000,
+        duration: 1500,
         useNativeDriver: true,
       }),
-      Animated.spring(scaleAnim, {
-        toValue: 1,
-        friction: 4,
-        tension: 40,
-        useNativeDriver: true,
-      }),
-      // Animate each letter of the title sequentially
-      ...titleAnimations.map((anim, index) =>
-        Animated.timing(anim, {
-          toValue: 1,
-          duration: 200,
-          delay: index * 100,
-          useNativeDriver: true,
-        })
+      // Animate each line's letters sequentially
+      ...titleAnimations.flatMap((line, lineIndex) =>
+        line.map((anim, letterIndex) =>
+          Animated.timing(anim, {
+            toValue: 1,
+            duration: 300,
+            delay: (lineIndex * line.length + letterIndex) * 100,
+            useNativeDriver: true,
+          })
+        )
       ),
     ]).start();
 
-    // Hide splash screen after 5 seconds
+    // Hide splash screen after 6 seconds total
     const timer = setTimeout(() => {
-      Animated.parallel([
-        Animated.timing(fadeAnim, {
-          toValue: 0,
-          duration: 500,
-          useNativeDriver: true,
-        }),
-        Animated.spring(scaleAnim, {
-          toValue: 0.3,
-          friction: 4,
-          tension: 40,
-          useNativeDriver: true,
-        }),
-      ]).start(() => setShowSplash(false));
-    }, 5000);
+      // Start fade out at 4.5 seconds
+      Animated.timing(fadeAnim, {
+        toValue: 0,
+        duration: 1500,
+        useNativeDriver: true,
+      }).start(() => setShowSplash(false));
+    }, 4500);
 
     return () => clearTimeout(timer);
-  }, []);
+  }, [sounds.splash]);
 
-  const renderAnimatedTitle = () => {
-    return (
-      <View style={styles.titleContainer}>
-        {SPLASH_TITLE.split('').map((letter, index) => (
-          <Animated.Text
-            key={index}
-            style={[
-              styles.splashTitleLetter,
-              {
-                opacity: titleAnimations[index],
-                transform: [
-                  {
-                    translateY: titleAnimations[index].interpolate({
-                      inputRange: [0, 1],
-                      outputRange: [20, 0],
-                    }),
-                  },
-                  {
-                    scale: titleAnimations[index].interpolate({
-                      inputRange: [0, 1],
-                      outputRange: [0.5, 1],
-                    }),
-                  },
-                ],
-              },
-            ]}
-          >
-            {letter}
-          </Animated.Text>
-        ))}
-      </View>
-    );
-  };
+  useEffect(() => {
+    if (!showSplash) return;
 
-  const flipCard = () => {
+    const createFloatingAnimation = (element: { x: Animated.Value; y: Animated.Value; opacity: Animated.Value; speed: number }) => {
+      const createRandomMovement = () => {
+        const duration = (3000 + Math.random() * 2000) / element.speed;
+        const direction = Math.random() * Math.PI * 2; // Random angle in radians
+        const distance = 10 + Math.random() * 20; // Random distance
+        const targetX = Math.cos(direction) * distance;
+        const targetY = Math.sin(direction) * distance;
+
+        return Animated.parallel([
+          Animated.sequence([
+            Animated.timing(element.x, {
+              toValue: targetX,
+              duration: duration,
+              useNativeDriver: true,
+              easing: Easing.inOut(Easing.sin),
+            }),
+            Animated.timing(element.x, {
+              toValue: -targetX,
+              duration: duration,
+              useNativeDriver: true,
+              easing: Easing.inOut(Easing.sin),
+            }),
+          ]),
+          Animated.sequence([
+            Animated.timing(element.y, {
+              toValue: targetY,
+              duration: duration * 1.2, // Slightly different duration for more natural movement
+              useNativeDriver: true,
+              easing: Easing.inOut(Easing.sin),
+            }),
+            Animated.timing(element.y, {
+              toValue: -targetY,
+              duration: duration * 1.2,
+              useNativeDriver: true,
+              easing: Easing.inOut(Easing.sin),
+            }),
+          ]),
+        ]);
+      };
+
+      return Animated.parallel([
+        Animated.sequence([
+          Animated.timing(element.opacity, {
+            toValue: 0.4,
+            duration: 1000,
+            useNativeDriver: true,
+          }),
+          Animated.timing(element.opacity, {
+            toValue: 0,
+            duration: 1000,
+            delay: 2500,
+            useNativeDriver: true,
+          }),
+        ]),
+        Animated.loop(createRandomMovement()),
+      ]);
+    };
+
+    floatingElements.forEach(element => {
+      createFloatingAnimation(element).start();
+    });
+  }, [showSplash]);
+
+  const flipCard = async () => {
+    try {
+      // Play flip sound
+      if (sounds.flip2) {
+        await sounds.flip2.setPositionAsync(0);
+        await sounds.flip2.playAsync();
+      }
+    } catch (error) {
+      console.log('Error playing flip sound:', error);
+    }
+
     setIsFlipped(!isFlipped);
     Animated.spring(flipAnim, {
       toValue: isFlipped ? 0 : 1,
@@ -238,19 +351,65 @@ export default function App() {
     }).start();
   };
 
-  const nextCard = () => {
+  const nextCard = async () => {
+    try {
+      // Play next card sound
+      if (sounds.flip1) {
+        await sounds.flip1.setPositionAsync(0);
+        await sounds.flip1.playAsync();
+      }
+    } catch (error) {
+      console.log('Error playing next sound:', error);
+    }
+
     setIsFlipped(false);
     flipAnim.setValue(0);
-    // Generate a random index different from the current one
     let newIndex;
     do {
       newIndex = Math.floor(Math.random() * elements.length);
     } while (newIndex === currentElement);
     setCurrentElement(newIndex);
     
-    // Set new random color pair
     const newColorIndex = Math.floor(Math.random() * colorPairs.length);
     setCurrentColorPair(colorPairs[newColorIndex]);
+  };
+
+  const renderAnimatedTitle = () => {
+    return (
+      <View style={styles.titleContainer}>
+        {SPLASH_TITLE_LINES.map((line, lineIndex) => (
+          <View key={lineIndex} style={styles.titleLine}>
+            {line.split('').map((letter, letterIndex) => (
+              <Animated.Text
+                key={letterIndex}
+                style={[
+                  styles.splashTitleLetter,
+                  {
+                    opacity: titleAnimations[lineIndex][letterIndex],
+                    transform: [
+                      {
+                        translateY: titleAnimations[lineIndex][letterIndex].interpolate({
+                          inputRange: [0, 1],
+                          outputRange: [20, 0],
+                        }),
+                      },
+                      {
+                        scale: titleAnimations[lineIndex][letterIndex].interpolate({
+                          inputRange: [0, 1],
+                          outputRange: [0.5, 1],
+                        }),
+                      },
+                    ],
+                  },
+                ]}
+              >
+                {letter}
+              </Animated.Text>
+            ))}
+          </View>
+        ))}
+      </View>
+    );
   };
 
   const frontAnimatedStyle = {
@@ -284,17 +443,65 @@ export default function App() {
             styles.splashContainer,
             {
               opacity: fadeAnim,
-              transform: [{ scale: scaleAnim }],
             },
           ]}
         >
-          {renderAnimatedTitle()}
-          <Text style={styles.developer}>Developed by MeDevRob</Text>
-          <Image
-            source={{ uri: 'https://cdn4.iconfinder.com/data/icons/logos-brands-5/24/react-512.png' }}
-            style={styles.logo}
-          />
-          <Animated.View style={[styles.loadingDot, { opacity: fadeAnim }]} />
+          {floatingElements.map((floatingEl, index) => (
+            <Animated.View
+              key={index}
+              style={[
+                styles.floatingElement,
+                {
+                  opacity: floatingEl.opacity,
+                  transform: [
+                    {
+                      translateX: floatingEl.x.interpolate({
+                        inputRange: [-30, 30],
+                        outputRange: [-90, 90],
+                      }),
+                    },
+                    {
+                      translateY: floatingEl.y.interpolate({
+                        inputRange: [-30, 30],
+                        outputRange: [-160, 160],
+                      }),
+                    },
+                    { scale: floatingEl.scale },
+                  ],
+                },
+              ]}
+            >
+              <Text style={styles.floatingSymbol}>{floatingEl.element.symbol}</Text>
+            </Animated.View>
+          ))}
+          <View style={styles.titleWrapper}>
+            {renderAnimatedTitle()}
+            <View style={styles.titleUnderlineContainer}>
+              <Animated.View 
+                style={[
+                  styles.titleUnderline, 
+                  { 
+                    transform: [
+                      {
+                        scaleX: fadeAnim.interpolate({
+                          inputRange: [0, 1],
+                          outputRange: [0, 1],
+                        }),
+                      }
+                    ],
+                  }
+                ]} 
+              />
+            </View>
+          </View>
+
+          <View style={styles.bottomContent}>
+            <Text style={styles.developer}>Developed by MeDevRob</Text>
+            <Image
+              source={{ uri: 'https://cdn4.iconfinder.com/data/icons/logos-brands-5/24/react-512.png' }}
+              style={styles.logo}
+            />
+          </View>
         </Animated.View>
       </View>
     );
@@ -358,32 +565,65 @@ const styles = StyleSheet.create({
     padding: 20,
   },
   splashContainer: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    justifyContent: 'space-between',
     alignItems: 'center',
+    backgroundColor: '#f0f9ff',
+    zIndex: 1000,
+    paddingVertical: 40,
+  },
+  titleWrapper: {
+    alignItems: 'center',
+    flex: 1,
     justifyContent: 'center',
   },
   titleContainer: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
+    alignItems: 'center',
     justifyContent: 'center',
-    maxWidth: 300,
-    marginBottom: 20,
   },
-  logo: {
-    width: 80,
-    height: 80,
-    marginTop: 20,
+  titleLine: {
+    flexDirection: 'row',
+    justifyContent: 'center',
+    marginVertical: 5,
+  },
+  titleUnderlineContainer: {
+    width: '80%',
+    alignItems: 'center',
+    marginTop: 10,
+  },
+  titleUnderline: {
+    width: '100%',
+    height: 4,
+    backgroundColor: '#2563eb',
+    borderRadius: 2,
   },
   splashTitleLetter: {
-    fontSize: 32,
-    fontWeight: 'bold',
+    fontSize: 46,
+    fontFamily: 'System',
+    fontWeight: '800',
     color: '#2563eb',
     marginHorizontal: 2,
+    textShadowColor: 'rgba(37, 99, 235, 0.2)',
+    textShadowOffset: { width: 1, height: 1 },
+    textShadowRadius: 4,
+  },
+  bottomContent: {
+    alignItems: 'center',
+    position: 'absolute',
+    bottom: 20,
   },
   developer: {
-    fontSize: 20,
-    color: '#4b5563',
-    marginTop: 10,
-    fontWeight: '600',
+    fontSize: 14,
+    color: '#64748b',
+    marginBottom: 8,
+  },
+  logo: {
+    width: 30,
+    height: 30,
   },
   loadingDot: {
     width: 10,
@@ -465,5 +705,21 @@ const styles = StyleSheet.create({
     color: '#ffffff',
     fontSize: 18,
     fontWeight: 'bold',
+  },
+  floatingElement: {
+    position: 'absolute',
+    justifyContent: 'center',
+    alignItems: 'center',
+    width: 60,
+    height: 60,
+    backgroundColor: 'rgba(37, 99, 235, 0.1)',
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: 'rgba(37, 99, 235, 0.2)',
+  },
+  floatingSymbol: {
+    fontSize: 24,
+    fontWeight: '600',
+    color: 'rgba(37, 99, 235, 0.6)',
   },
 });
