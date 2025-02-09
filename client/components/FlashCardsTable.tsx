@@ -3,31 +3,10 @@ import { View, Text, TouchableOpacity, ScrollView, StyleSheet, Dimensions } from
 import { Ionicons } from '@expo/vector-icons';
 import { Element } from '../types';
 
-// Cheerful color palette
-const colorPalette = [
-  '#FF6B6B', // Coral Red
-  '#4ECDC4', // Turquoise
-  '#45B7D1', // Sky Blue
-  '#96CEB4', // Sage Green
-  '#FFEEAD', // Cream Yellow
-  '#D4A5A5', // Dusty Rose
-  '#9B5DE5', // Purple
-  '#F15BB5', // Pink
-  '#00BBF9', // Bright Blue
-  '#00F5D4', // Mint
-  '#FEE440', // Yellow
-  '#8338EC', // Violet
-  '#3A86FF', // Royal Blue
-  '#FB5607', // Orange
-  '#FF006E', // Hot Pink
-];
-
-const getRandomColor = () => {
-  return colorPalette[Math.floor(Math.random() * colorPalette.length)];
-};
+const CARD_COLOR = '#00BBF9'; // Bright Blue
 
 interface Props {
-  elements: Element[][];  // Updated type to reflect 3 columns
+  elements: Element[][];
   onElementPress: (element: Element) => void;
   onBackPress: () => void;
 }
@@ -45,7 +24,7 @@ const FlashCardsTable: React.FC<Props> = ({ elements, onElementPress, onBackPres
             style={[styles.card, { 
               width: cardWidth - 10,
               height: cardWidth - 10,
-              backgroundColor: getRandomColor(),
+              backgroundColor: CARD_COLOR,
             }]}
             onPress={() => onElementPress(element)}
           >
@@ -145,4 +124,4 @@ const styles = StyleSheet.create({
   },
 });
 
-export default FlashCardsTable; 
+export default memo(FlashCardsTable); 

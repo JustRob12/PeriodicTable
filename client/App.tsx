@@ -15,6 +15,7 @@ import MenuScreen from './components/MenuScreen';
 import FlashCardsTable from './components/FlashCardsTable';
 import CreditsModal from './components/CreditsModal';
 import { Element } from './types';
+import LoadingSpinner from './components/LoadingSpinner';
 
 export default function App() {
   const fontsLoaded = useFonts();
@@ -35,6 +36,7 @@ export default function App() {
   const [currentScreen, setCurrentScreen] = useState<'splash' | 'menu' | 'game' | 'table'>('splash');
   const [showSettings, setShowSettings] = useState(false);
   const [showCredits, setShowCredits] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
 
   useEffect(() => {
     // Fade in animation
@@ -128,14 +130,50 @@ export default function App() {
     setCurrentScreen('game');
   };
 
-  const handleFlashCardsPress = () => {
-    setCurrentScreen('table');
+  const handleFlashCardsPress = async () => {
+    try {
+      // Show loading immediately
+      setIsLoading(true);
+
+      // Play sound without waiting
+      if (sounds?.click) {
+        sounds.click.setPositionAsync(0);
+        sounds.click.playAsync();
+      }
+
+      // Short delay for loading animation
+      await new Promise(resolve => setTimeout(resolve, 500));
+      
+      setCurrentScreen('table');
+    } catch (error) {
+      console.log('Error handling flash cards press:', error);
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   // Handle element selection in table view
-  const handleElementPress = (element: Element) => {
-    setCurrentElement(elements.findIndex(e => e.symbol === element.symbol));
-    setModalVisible(true);
+  const handleElementPress = async (element: Element) => {
+    try {
+      // Show loading immediately
+      setIsLoading(true);
+      setCurrentElement(elements.findIndex(e => e.symbol === element.symbol));
+
+      // Play sound without waiting
+      if (sounds?.click) {
+        sounds.click.setPositionAsync(0);
+        sounds.click.playAsync();
+      }
+
+      // Short delay for loading animation
+      await new Promise(resolve => setTimeout(resolve, 500));
+      
+      setModalVisible(true);
+    } catch (error) {
+      console.log('Error handling element press:', error);
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   // Convert flat array to 2D array with 3 columns
@@ -160,60 +198,58 @@ export default function App() {
         />
       )}
       
-      {currentScreen !== 'splash' && (
-        <>
-          {currentScreen === 'menu' && (
-            <MenuScreen
-              onStartPress={handleStartPress}
-              onFlashCardsPress={handleFlashCardsPress}
-              onCreditsPress={() => setShowCredits(true)}
-              onSettingsPress={() => setShowSettings(true)}
-              sounds={sounds}
-            />
-          )}
-          
-          {currentScreen === 'game' && (
-            <Card
-              element={elements[currentElement]}
-              colorPair={currentColorPair}
-              frontAnimatedStyle={frontAnimatedStyle}
-              backAnimatedStyle={backAnimatedStyle}
-              onInfoPress={handleElementPress}
-              isFlipped={isFlipped}
-              onBackPress={() => setCurrentScreen('menu')}
-              onFlip={flipCard}
-              onNext={nextCard}
-            />
-          )}
-          
-          {currentScreen === 'table' && (
-            <FlashCardsTable
-              elements={elementColumns}
-              onElementPress={handleElementPress}
-              onBackPress={() => setCurrentScreen('menu')}
-            />
-          )}
-          
-          <ElementModal
-            isVisible={modalVisible}
-            element={elementDescriptions[elements[currentElement].symbol]}
-            onClose={() => setModalVisible(false)}
-          />
-          
-          <Settings 
-            isVisible={showSettings}
-            onClose={() => setShowSettings(false)}
-            volume={volume}
-            onVolumeChange={handleVolumeChange}
-          />
-        </>
+      {currentScreen === 'menu' && (
+        <MenuScreen
+          onStartPress={handleStartPress}
+          onFlashCardsPress={handleFlashCardsPress}
+          onCreditsPress={() => setShowCredits(true)}
+          onSettingsPress={() => setShowSettings(true)}
+          sounds={sounds}
+        />
       )}
       
-    
+      {currentScreen === 'game' && (
+        <Card
+          element={elements[currentElement]}
+          colorPair={currentColorPair}
+          frontAnimatedStyle={frontAnimatedStyle}
+          backAnimatedStyle={backAnimatedStyle}
+          onInfoPress={handleElementPress}
+          isFlipped={isFlipped}
+          onBackPress={() => setCurrentScreen('menu')}
+          onFlip={flipCard}
+          onNext={nextCard}
+        />
+      )}
+      
+      {currentScreen === 'table' && (
+        <FlashCardsTable
+          elements={elementColumns}
+          onElementPress={handleElementPress}
+          onBackPress={() => setCurrentScreen('menu')}
+        />
+      )}
+      
+      <ElementModal
+        isVisible={modalVisible}
+        element={elementDescriptions[elements[currentElement].symbol]}
+        onClose={() => setModalVisible(false)}
+      />
+      
+      <Settings 
+        isVisible={showSettings}
+        onClose={() => setShowSettings(false)}
+        volume={volume}
+        onVolumeChange={handleVolumeChange}
+      />
+      
       <CreditsModal 
         isVisible={showCredits}
         onClose={() => setShowCredits(false)}
       />
+
+      {isLoading && <LoadingSpinner />}
+      
       <StatusBar style="auto" />
     </View>
   );
@@ -247,5 +283,9 @@ const styles = StyleSheet.create({
     color: '#ffffff',
     fontSize: 18,
     fontWeight: 'bold',
+  },
+  fullScreen: {
+    flex: 1,
+    position: 'relative',
   },
 });

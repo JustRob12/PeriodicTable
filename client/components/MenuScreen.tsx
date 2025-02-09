@@ -48,13 +48,7 @@ const MenuScreen: React.FC<Props> = ({ onStartPress, onFlashCardsPress, onCredit
           >
             <Text style={styles.buttonText}>Flash Cards</Text>
           </TouchableOpacity>
-          <TouchableOpacity 
-            style={styles.button}
-            onPress={() => handleButtonPress(onCreditsPress)}
-            activeOpacity={0.8}
-          >
-            <Text style={styles.buttonText}>Credits</Text>
-          </TouchableOpacity>
+
           <TouchableOpacity 
             style={styles.button}
             onPress={() => handleButtonPress(onSettingsPress)}
@@ -62,6 +56,15 @@ const MenuScreen: React.FC<Props> = ({ onStartPress, onFlashCardsPress, onCredit
           >
             <Text style={styles.buttonText}>Settings</Text>
           </TouchableOpacity>
+          
+          <TouchableOpacity 
+            style={styles.button}
+            onPress={() => handleButtonPress(onCreditsPress)}
+            activeOpacity={0.8}
+          >
+            <Text style={styles.buttonText}>Credits</Text>
+          </TouchableOpacity>
+          
         </View>
       </View>
     </View>
