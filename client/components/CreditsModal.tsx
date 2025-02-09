@@ -21,7 +21,7 @@ const CreditsModal: React.FC<CreditsModalProps> = ({ isVisible, onClose }) => {
           </TouchableOpacity>
           <Text style={styles.title}>Credits</Text>
           <Text style={styles.introduction}>
-            Developed by Roberto M. Prisoris Jr. - Web and App Developer
+            Developed by Roberto M. Prisoris Jr. - Web and App Developer. I also want to thank my Girlfriend(Lady) for keep supporting me.
           </Text>
           <Text style={styles.socialMedia}>
             Follow me on:
