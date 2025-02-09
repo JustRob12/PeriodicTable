@@ -1,7 +1,7 @@
 import React from 'react';
 import { View, Text, TouchableOpacity, StyleSheet, Animated } from 'react-native';
+import { Ionicons } from '@expo/vector-icons';
 import { Element, ColorPair } from '../types';
-import { ElementDescription } from '../data/elementDescriptions';
 
 interface Props {
   element: Element;
@@ -10,6 +10,9 @@ interface Props {
   backAnimatedStyle: any;
   onInfoPress: (element: Element) => void;
   isFlipped: boolean;
+  onBackPress: () => void;
+  onFlip: () => void;
+  onNext: () => void;
 }
 
 export const Card: React.FC<Props> = ({
@@ -19,57 +22,103 @@ export const Card: React.FC<Props> = ({
   backAnimatedStyle,
   onInfoPress,
   isFlipped,
+  onBackPress,
+  onFlip,
+  onNext,
 }) => {
   return (
-    <View style={styles.cardContainer}>
-      <Animated.View 
-        style={[
-          styles.card, 
-          { backgroundColor: colorPair[0] },
-          styles.cardFront, 
-          frontAnimatedStyle,
-          !isFlipped && styles.cardFrontActive,
-        ]}
-      >
-        <Text style={styles.symbol}>{element.symbol}</Text>
-        <Text style={styles.atomicNumber}>{element.atomicNumber}</Text>
-      </Animated.View>
-      
-      <Animated.View 
-        style={[
-          styles.card,
-          { backgroundColor: colorPair[1] },
-          styles.cardBack,
-          backAnimatedStyle,
-          isFlipped && styles.cardBackActive,
-        ]}
-      >
-        <View style={styles.cardContent}>
-          <Text style={styles.backName}>{element.name}</Text>
-          <Text style={styles.backAtomicNumber}>{element.atomicNumber}</Text>
-          
-          {isFlipped && (
-            <TouchableOpacity
-              style={styles.infoButton}
-              onPress={() => onInfoPress(element)}
-            >
-              <Text style={styles.infoButtonText}>More Info</Text>
-            </TouchableOpacity>
-          )}
-        </View>
-      </Animated.View>
+    <View style={styles.pageContainer}>
+      <TouchableOpacity onPress={onBackPress} style={styles.backButton}>
+        <Ionicons name="chevron-back" size={28} color="#2563eb" />
+      </TouchableOpacity>
+      <Text style={styles.headerTitle}>Periodic Table Flash Cards</Text>
+
+      <View style={styles.cardContainer}>
+        <Animated.View 
+          style={[
+            styles.card, 
+            { backgroundColor: colorPair[0] },
+            frontAnimatedStyle,
+            !isFlipped && styles.cardFrontActive,
+          ]}
+        >
+          <Text style={styles.symbol}>{element.symbol}</Text>
+          <Text style={styles.atomicNumber}>{element.atomicNumber}</Text>
+        </Animated.View>
+        
+        <Animated.View 
+          style={[
+            styles.card,
+            { backgroundColor: colorPair[1] },
+            backAnimatedStyle,
+            isFlipped && styles.cardBackActive,
+          ]}
+        >
+          <View style={styles.cardContent}>
+            <Text style={styles.backName}>{element.name}</Text>
+            <Text style={styles.backAtomicNumber}>{element.atomicNumber}</Text>
+            
+            {isFlipped && (
+              <TouchableOpacity
+                style={styles.infoButton}
+                onPress={() => onInfoPress(element)}
+              >
+                <Text style={styles.infoButtonText}>More Info</Text>
+              </TouchableOpacity>
+            )}
+          </View>
+        </Animated.View>
+      </View>
+
+      <View style={styles.buttonContainer}>
+        <TouchableOpacity 
+          style={[styles.button, { backgroundColor: colorPair[0] }]} 
+          onPress={onFlip}
+        >
+          <Text style={styles.buttonText}>Flip Card</Text>
+        </TouchableOpacity>
+        <TouchableOpacity 
+          style={[styles.button, { backgroundColor: colorPair[0] }]} 
+          onPress={onNext}
+        >
+          <Text style={styles.buttonText}>Next Card</Text>
+        </TouchableOpacity>
+      </View>
     </View>
   );
 };
 
 const styles = StyleSheet.create({
+  pageContainer: {
+    flex: 1,
+    width: '100%',
+    padding: 20,
+    backgroundColor: '#f0f9ff',
+  },
+  backButton: {
+    position: 'absolute',
+    top: 80,
+    left: 20,
+    zIndex: 1,
+  },
+  headerTitle: {
+    fontSize: 24,
+    fontWeight: 'bold',
+    color: '#2563eb',
+    textAlign: 'center',
+    marginTop: 100,
+  },
   cardContainer: {
-    width: 280,
+    width: '100%',
     height: 400,
-    marginVertical: 20,
+    alignSelf: 'center',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginVertical: 50,
   },
   card: {
     position: 'absolute',
+    padding: 20,
     width: '100%',
     height: '100%',
     borderRadius: 20,
@@ -84,7 +133,6 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.25,
     shadowRadius: 3.84,
     elevation: 5,
-    pointerEvents: 'none',
   },
   cardFront: {},
   cardBack: {},
@@ -111,10 +159,10 @@ const styles = StyleSheet.create({
     height: '100%',
     justifyContent: 'center',
     alignItems: 'center',
-    padding: 20,
+    padding: 10,
   },
   backName: {
-    fontSize: 40,
+    fontSize: 38,
     fontWeight: 'bold',
     color: '#ffffff',
     marginBottom: 20,
@@ -125,6 +173,25 @@ const styles = StyleSheet.create({
     fontWeight: 'bold',
     color: '#ffffff',
     marginBottom: 40,
+  },
+  buttonContainer: {
+    flexDirection: 'row',
+    justifyContent: 'space-around',
+    width: '100%',
+    paddingHorizontal: 20,
+    marginTop: 20,
+  },
+  button: {
+    paddingHorizontal: 20,
+    paddingVertical: 10,
+    borderRadius: 10,
+    minWidth: 120,
+    alignItems: 'center',
+  },
+  buttonText: {
+    color: '#ffffff',
+    fontSize: 18,
+    fontWeight: 'bold',
   },
   infoButton: {
     backgroundColor: '#2196F3',

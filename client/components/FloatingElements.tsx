@@ -1,156 +1,82 @@
-import React, { useEffect, useState } from 'react';
-import { Animated, StyleSheet, Text, Easing } from 'react-native';
-import { Element, FloatingElement } from '../types';
-import { elements } from '../data/elements';
+import React, { useEffect, useRef } from 'react';
+import { View, StyleSheet, Animated, Dimensions } from 'react-native';
 import { FLOATING_ELEMENTS_CONFIG } from '../data/constants';
+
+const { width: SCREEN_WIDTH, height: SCREEN_HEIGHT } = Dimensions.get('window');
 
 interface Props {
   showSplash: boolean;
 }
 
-const getDistributedPosition = (index: number, total: number) => {
-  const gridSize = Math.ceil(Math.sqrt(total));
-  const cellSize = 100 / gridSize;
-  const row = Math.floor(index / gridSize);
-  const col = index % gridSize;
-  return {
-    x: (col * cellSize) + (Math.random() * cellSize * 0.6),
-    y: (row * cellSize) + (Math.random() * cellSize * 0.6)
-  };
-};
-
 export const FloatingElements: React.FC<Props> = ({ showSplash }) => {
-  const [floatingElements] = useState(() => {
-    const total = FLOATING_ELEMENTS_CONFIG.TOTAL_ELEMENTS;
-    return Array.from({ length: total }, (_, index) => {
-      const pos = getDistributedPosition(index, total);
-      return {
-        x: new Animated.Value(pos.x),
-        y: new Animated.Value(pos.y),
-        opacity: new Animated.Value(0),
-        element: elements[Math.floor(Math.random() * elements.length)],
-        scale: FLOATING_ELEMENTS_CONFIG.MIN_SCALE + Math.random() * 
-               (FLOATING_ELEMENTS_CONFIG.MAX_SCALE - FLOATING_ELEMENTS_CONFIG.MIN_SCALE),
-        speed: FLOATING_ELEMENTS_CONFIG.MIN_SPEED + Math.random() * 
-               (FLOATING_ELEMENTS_CONFIG.MAX_SPEED - FLOATING_ELEMENTS_CONFIG.MIN_SPEED),
-      };
-    });
-  });
+  const elements = useRef(Array.from({ length: FLOATING_ELEMENTS_CONFIG.TOTAL_ELEMENTS }, () => ({
+    x: new Animated.Value(Math.random() * SCREEN_WIDTH),
+    y: new Animated.Value(Math.random() * SCREEN_HEIGHT),
+    scale: FLOATING_ELEMENTS_CONFIG.MIN_SCALE + Math.random() * (FLOATING_ELEMENTS_CONFIG.MAX_SCALE - FLOATING_ELEMENTS_CONFIG.MIN_SCALE),
+    speed: FLOATING_ELEMENTS_CONFIG.MIN_SPEED + Math.random() * (FLOATING_ELEMENTS_CONFIG.MAX_SPEED - FLOATING_ELEMENTS_CONFIG.MIN_SPEED),
+  }))).current;
 
   useEffect(() => {
-    if (!showSplash) return;
-
-    const createFloatingAnimation = (element: FloatingElement) => {
-      const createRandomMovement = () => {
-        const direction = Math.random() * Math.PI * 2;
-        const distance = 30 + Math.random() * 50;
-        const targetX = Math.cos(direction) * distance;
-        const targetY = Math.sin(direction) * distance;
-
-        return Animated.parallel([
-          Animated.sequence([
+    if (showSplash) {
+      elements.forEach(element => {
+        const animate = () => {
+          const horizontalAnimation = Animated.sequence([
             Animated.timing(element.x, {
-              toValue: targetX,
-              duration: FLOATING_ELEMENTS_CONFIG.ANIMATION_DURATION,
+              toValue: Math.random() * SCREEN_WIDTH,
+              duration: FLOATING_ELEMENTS_CONFIG.ANIMATION_DURATION * element.speed,
               useNativeDriver: true,
-              easing: Easing.inOut(Easing.sin),
             }),
-            Animated.timing(element.x, {
-              toValue: -targetX,
-              duration: FLOATING_ELEMENTS_CONFIG.ANIMATION_DURATION,
-              useNativeDriver: true,
-              easing: Easing.inOut(Easing.sin),
-            }),
-          ]),
-          Animated.sequence([
-            Animated.timing(element.y, {
-              toValue: targetY,
-              duration: FLOATING_ELEMENTS_CONFIG.VERTICAL_DURATION,
-              useNativeDriver: true,
-              easing: Easing.inOut(Easing.sin),
-            }),
-            Animated.timing(element.y, {
-              toValue: -targetY,
-              duration: FLOATING_ELEMENTS_CONFIG.VERTICAL_DURATION,
-              useNativeDriver: true,
-              easing: Easing.inOut(Easing.sin),
-            }),
-          ]),
-        ]);
-      };
+          ]);
 
-      return Animated.parallel([
-        Animated.sequence([
-          Animated.timing(element.opacity, {
-            toValue: 0.4,
-            duration: 1000,
-            useNativeDriver: true,
-          }),
-          Animated.timing(element.opacity, {
-            toValue: 0,
-            duration: 1000,
-            delay: 2500,
-            useNativeDriver: true,
-          }),
-        ]),
-        Animated.loop(createRandomMovement()),
-      ]);
-    };
+          const verticalAnimation = Animated.sequence([
+            Animated.timing(element.y, {
+              toValue: Math.random() * SCREEN_HEIGHT,
+              duration: FLOATING_ELEMENTS_CONFIG.VERTICAL_DURATION * element.speed,
+              useNativeDriver: true,
+            }),
+          ]);
 
-    floatingElements.forEach(element => {
-      createFloatingAnimation(element).start();
-    });
+          Animated.parallel([horizontalAnimation, verticalAnimation]).start(animate);
+        };
+
+        animate();
+      });
+    }
   }, [showSplash]);
 
+  if (!showSplash) return null;
+
   return (
-    <>
-      {floatingElements.map((floatingEl, index) => (
+    <View style={styles.container} pointerEvents="none">
+      {elements.map((element, index) => (
         <Animated.View
           key={index}
           style={[
-            styles.floatingElement,
+            styles.element,
             {
-              opacity: floatingEl.opacity,
               transform: [
-                {
-                  translateX: floatingEl.x.interpolate({
-                    inputRange: [-30, 30],
-                    outputRange: [-90, 90],
-                  }),
-                },
-                {
-                  translateY: floatingEl.y.interpolate({
-                    inputRange: [-30, 30],
-                    outputRange: [-160, 160],
-                  }),
-                },
-                { scale: floatingEl.scale },
+                { translateX: element.x },
+                { translateY: element.y },
+                { scale: element.scale },
               ],
             },
           ]}
-        >
-          <Text style={styles.floatingSymbol}>{floatingEl.element.symbol}</Text>
-        </Animated.View>
+        />
       ))}
-    </>
+    </View>
   );
 };
 
 const styles = StyleSheet.create({
-  floatingElement: {
-    position: 'absolute',
-    justifyContent: 'center',
-    alignItems: 'center',
-    width: 60,
-    height: 60,
-    backgroundColor: 'rgba(37, 99, 235, 0.1)',
-    borderRadius: 8,
-    borderWidth: 1,
-    borderColor: 'rgba(37, 99, 235, 0.2)',
+  container: {
+    ...StyleSheet.absoluteFillObject,
+    overflow: 'hidden',
   },
-  floatingSymbol: {
-    fontSize: 24,
-    fontWeight: '600',
-    color: 'rgba(37, 99, 235, 0.6)',
+  element: {
+    position: 'absolute',
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: 'rgba(37, 99, 235, 0.1)',
   },
 });

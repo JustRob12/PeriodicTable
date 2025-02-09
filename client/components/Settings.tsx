@@ -1,77 +1,64 @@
-import React, { useState } from 'react';
+import React from 'react';
 import { View, StyleSheet, Modal, TouchableOpacity } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { Text } from 'react-native';
-import Slider, { SliderProps } from '@react-native-community/slider';
+import Slider from '@react-native-community/slider';
 
-type SettingsProps = {
+interface SettingsProps {
+  isVisible: boolean;
+  onClose: () => void;
   volume: number;
-  onVolumeChange: (value: number) => void;
-};
+  onVolumeChange: (newVolume: number) => void;
+}
 
-export const Settings: React.FC<SettingsProps> = ({ volume, onVolumeChange }) => {
-  const [modalVisible, setModalVisible] = useState(false);
-
+export const Settings: React.FC<SettingsProps> = ({ 
+  isVisible, 
+  onClose, 
+  volume, 
+  onVolumeChange 
+}) => {
   return (
-    <>
-      <TouchableOpacity
-        style={styles.iconContainer}
-        onPress={() => setModalVisible(true)}
-      >
-        <Ionicons name="settings-outline" size={24} color="white" />
-      </TouchableOpacity>
-
-      <Modal
-        animationType="slide"
-        transparent={true}
-        visible={modalVisible}
-        onRequestClose={() => setModalVisible(false)}
-      >
-        <View style={styles.modalContainer}>
-          <View style={styles.modalContent}>
-            <TouchableOpacity
-              style={styles.closeButton}
-              onPress={() => setModalVisible(false)}
-            >
-              <Ionicons name="close" size={24} color="black" />
-            </TouchableOpacity>
-            
-            <Text style={styles.title}>Settings</Text>
-            
-            <View style={styles.settingItem}>
-              <Text style={styles.label}>Volume</Text>
-              <View style={styles.sliderContainer}>
-                <Ionicons name="volume-low" size={20} color="black" />
-                <Slider
-                  style={styles.slider}
-                  value={volume}
-                  onValueChange={onVolumeChange}
-                  minimumValue={0}
-                  maximumValue={1}
-                  step={0.1}
-                  minimumTrackTintColor="#2196F3"
-                  maximumTrackTintColor="#000000"
-                />
-                <Ionicons name="volume-high" size={20} color="black" />
-              </View>
+    <Modal
+      animationType="slide"
+      transparent={true}
+      visible={isVisible}
+      onRequestClose={onClose}
+    >
+      <View style={styles.modalContainer}>
+        <View style={styles.modalContent}>
+          <TouchableOpacity
+            style={styles.closeButton}
+            onPress={onClose}
+          >
+            <Ionicons name="close" size={24} color="black" />
+          </TouchableOpacity>
+          
+          <Text style={styles.title}>Settings</Text>
+          
+          <View style={styles.settingItem}>
+            <Text style={styles.label}>Volume</Text>
+            <View style={styles.sliderContainer}>
+              <Ionicons name="volume-low" size={20} color="black" />
+              <Slider
+                style={styles.slider}
+                value={volume}
+                onValueChange={onVolumeChange}
+                minimumValue={0}
+                maximumValue={1}
+                step={0.1}
+                minimumTrackTintColor="#2196F3"
+                maximumTrackTintColor="#000000"
+              />
+              <Ionicons name="volume-high" size={20} color="black" />
             </View>
           </View>
         </View>
-      </Modal>
-    </>
+      </View>
+    </Modal>
   );
 };
 
 const styles = StyleSheet.create({
-  iconContainer: {
-    position: 'absolute',
-    top: 40,
-    right: 20,
-    padding: 8,
-    borderRadius: 20,
-    backgroundColor: 'rgba(0, 0, 0, 0.5)',
-    zIndex: 1000,
-  },
   modalContainer: {
     flex: 1,
     justifyContent: 'center',

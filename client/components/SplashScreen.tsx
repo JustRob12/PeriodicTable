@@ -1,82 +1,15 @@
 import React from 'react';
 import { View, Text, Image, StyleSheet, Animated } from 'react-native';
-import { SPLASH_TITLE_LINES, SPLASH_SUBTITLE } from '../data/constants';
 import { FloatingElements } from './FloatingElements';
-import { useFonts } from '../hooks/useFonts';
 
 interface Props {
-  titleAnimations: Animated.Value[][];
+  showSplash: boolean;
+  fadeAnim: Animated.Value;
   onSplashComplete: () => void;
-  showSplash?: boolean;
-  fadeAnim?: Animated.Value;
 }
 
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: '#f0f9ff',
-  },
-  loadingText: {
-    fontSize: 18,
-    color: '#64748b',
-  },
-  splashContainer: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-    backgroundColor: '#f0f9ff',
-    zIndex: 1000,
-  },
-  mainContent: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  title: {
-    fontSize: 68,
-    fontFamily: 'BebasNeue-Regular',
-    fontWeight: '800',
-    color: '#2563eb',
-    textAlign: 'center',
-    textShadowColor: 'rgba(37, 99, 235, 0.2)',
-    textShadowOffset: { width: 1, height: 1 },
-    textShadowRadius: 4,
-  },
-  subtitle: {
-    fontSize: 24,
-    color: '#64748b',
-    marginTop: 16,
-    textAlign: 'center',
-    maxWidth: '80%',
-    fontWeight: '500',
-  },
-  bottomContent: {
-    position: 'absolute',
-    bottom: 20,
-    alignItems: 'center',
-    width: '100%',
-  },
-  developer: {
-    fontSize: 14,
-    color: '#64748b',
-    marginBottom: 8,
-  },
-  logo: {
-    width: 30,
-    height: 30,
-  },
-});
-
-export const SplashScreen: React.FC<Props> = ({ showSplash, fadeAnim = new Animated.Value(0), onSplashComplete }) => {
-  const isLoaded = useFonts();
-
-  if (!isLoaded) {
-    return (
-      <View style={[styles.container, { justifyContent: 'center', alignItems: 'center' }]}>
-        <Text style={styles.loadingText}>Loading...</Text>
-      </View>
-    );
-  }
+export const SplashScreen: React.FC<Props> = ({ showSplash, fadeAnim, onSplashComplete }) => {
+  if (!showSplash) return null;
 
   return (
     <View style={styles.container}>
@@ -88,7 +21,7 @@ export const SplashScreen: React.FC<Props> = ({ showSplash, fadeAnim = new Anima
           },
         ]}
       >
-        <FloatingElements showSplash={showSplash ?? false} />
+        <FloatingElements showSplash={showSplash} />
         <View style={styles.mainContent}>
           <Animated.Text 
             style={[
@@ -134,5 +67,57 @@ export const SplashScreen: React.FC<Props> = ({ showSplash, fadeAnim = new Anima
     </View>
   );
 };
+
+const styles = StyleSheet.create({
+  container: {
+    flex: 1,
+    backgroundColor: '#f0f9ff',
+  },
+  splashContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: '#f0f9ff',
+    zIndex: 1000,
+  },
+  mainContent: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  title: {
+    fontSize: 72,
+    fontFamily: 'BebasNeue-Regular',
+    fontWeight: '800',
+    color: '#2563eb',
+    textAlign: 'center',
+    textShadowColor: 'rgba(37, 99, 235, 0.2)',
+    textShadowOffset: { width: 1, height: 1 },
+    textShadowRadius: 4,
+  },
+  subtitle: {
+    fontSize: 24,
+    color: '#64748b',
+    marginTop: 16,
+    textAlign: 'center',
+    maxWidth: '80%',
+    fontWeight: '500',
+  },
+  bottomContent: {
+    position: 'absolute',
+    bottom: 20,
+    alignItems: 'center',
+    width: '100%',
+  },
+  developer: {
+    fontSize: 14,
+    color: '#64748b',
+    marginBottom: 8,
+  },
+  logo: {
+    width: 30,
+    height: 30,
+  },
+});
 
 export default SplashScreen;

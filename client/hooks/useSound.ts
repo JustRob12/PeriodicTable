@@ -13,11 +13,13 @@ export const useSound = () => {
         const flip1Sound = new Audio.Sound();
         const flip2Sound = new Audio.Sound();
         const scienceSound = new Audio.Sound();
+        const clickSound = new Audio.Sound();
 
         await splashSound.loadAsync(require('../assets/music/splash.m4a'));
         await flip1Sound.loadAsync(require('../assets/music/flip1.m4a'));
         await flip2Sound.loadAsync(require('../assets/music/flip2.m4a'));
         await scienceSound.loadAsync(require('../assets/music/science.m4a'));
+        await clickSound.loadAsync(require('../assets/music/click.m4a'));
 
         // Set science music to loop
         await scienceSound.setIsLoopingAsync(true);
@@ -27,12 +29,14 @@ export const useSound = () => {
         await flip1Sound.setVolumeAsync(volume);
         await flip2Sound.setVolumeAsync(volume);
         await scienceSound.setVolumeAsync(volume);
+        await clickSound.setVolumeAsync(volume);
 
         setSounds({
           splash: splashSound,
           flip1: flip1Sound,
           flip2: flip2Sound,
-          science: scienceSound
+          science: scienceSound,
+          click: clickSound,
         });
 
         // Play splash sound immediately

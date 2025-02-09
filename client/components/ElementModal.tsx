@@ -120,7 +120,7 @@ const styles = StyleSheet.create({
     width: '100%',
     backgroundColor: '#F3F4F6',
     borderRadius: 10,
-    padding: 15,
+    padding: 5,
     marginBottom: 20,
   },
   detailRow: {
@@ -132,7 +132,7 @@ const styles = StyleSheet.create({
     flexWrap: 'nowrap',
   },
   detailLabel: {
-    fontSize: 14,
+    fontSize: 11,
     color: '#4B5563',
     flex: 1,
     marginRight: 10,

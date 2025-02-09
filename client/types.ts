@@ -6,6 +6,7 @@ export interface Element {
   name: string;
   atomicNumber: number;
   category: string;
+  // Add other properties your elements have
 }
 
 export interface FloatingElement {
@@ -18,10 +19,11 @@ export interface FloatingElement {
 }
 
 export interface Sounds {
-  splash: Audio.Sound | null;
-  flip1: Audio.Sound | null;
-  flip2: Audio.Sound | null;
-  science: Audio.Sound | null;
+  splash: Audio.Sound;
+  flip1: Audio.Sound;
+  flip2: Audio.Sound;
+  science: Audio.Sound;
+  click: Audio.Sound;
 }
 
 export interface ColorPair extends Array<string> {

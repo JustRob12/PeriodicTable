@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { StyleSheet, Text, View, Animated, TouchableOpacity, Easing } from 'react-native';
 import { StatusBar } from 'expo-status-bar';
 import ElementModal from './components/ElementModal';
@@ -11,14 +11,18 @@ import { useFonts } from './hooks/useFonts';
 import { SplashScreen } from './components/SplashScreen';
 import { Card } from './components/Card';
 import { Settings } from './components/Settings';
+import MenuScreen from './components/MenuScreen';
+import FlashCardsTable from './components/FlashCardsTable';
+import CreditsModal from './components/CreditsModal';
+import { Element } from './types';
 
 export default function App() {
-  const isLoaded = useFonts();
-  const [showSplash, setShowSplash] = useState(true);
+  const fontsLoaded = useFonts();
+  const [splashComplete, setSplashComplete] = useState(false);
   const [currentElement, setCurrentElement] = useState(0);
   const [isFlipped, setIsFlipped] = useState(false);
   const [flipAnim] = useState(new Animated.Value(0));
-  const [fadeAnim] = useState(new Animated.Value(0));
+  const fadeAnim = useRef(new Animated.Value(0)).current;
   const [titleAnimations] = useState(() => 
     SPLASH_TITLE_LINES.map(line => 
       line.split('').map(() => new Animated.Value(0))
@@ -28,42 +32,31 @@ export default function App() {
   const { sounds, volume, handleVolumeChange } = useSound();
   const [selectedElement, setSelectedElement] = useState<ElementDescription | null>(null);
   const [modalVisible, setModalVisible] = useState(false);
+  const [currentScreen, setCurrentScreen] = useState<'splash' | 'menu' | 'game' | 'table'>('splash');
+  const [showSettings, setShowSettings] = useState(false);
+  const [showCredits, setShowCredits] = useState(false);
 
   useEffect(() => {
-    if (!sounds?.splash) return;
-    
-    // Animate the splash screen
-    Animated.parallel([
-      Animated.timing(fadeAnim, {
-        toValue: 1,
-        duration: 1500,
-        useNativeDriver: true,
-      }),
-      // Animate each line's letters sequentially
-      ...titleAnimations.flatMap((line, lineIndex) =>
-        line.map((anim, letterIndex) =>
-          Animated.timing(anim, {
-            toValue: 1,
-            duration: 300,
-            delay: (lineIndex * line.length + letterIndex) * 100,
-            useNativeDriver: true,
-          })
-        )
-      ),
-    ]).start();
-
-    // Hide splash screen after 10 seconds total
-    const timer = setTimeout(() => {
-      // Start fade out at 8 seconds
-      Animated.timing(fadeAnim, {
-        toValue: 0,
-        duration: 2000,
-        useNativeDriver: true,
-      }).start(() => setShowSplash(false));
-    }, 8000);
-
-    return () => clearTimeout(timer);
-  }, [sounds?.splash]);
+    // Fade in animation
+    Animated.timing(fadeAnim, {
+      toValue: 1,
+      duration: 2000, // 2 seconds fade in
+      useNativeDriver: true,
+    }).start(() => {
+      // Hold for 2 seconds
+      setTimeout(() => {
+        // Fade out animation
+        Animated.timing(fadeAnim, {
+          toValue: 0,
+          duration: 2000, // 2 seconds fade out
+          useNativeDriver: true,
+        }).start(() => {
+          setSplashComplete(true);
+          setCurrentScreen('menu');
+        });
+      }, 2000); // 2 seconds hold
+    });
+  }, []);
 
   const flipCard = async () => {
     try {
@@ -130,53 +123,98 @@ export default function App() {
     ],
   };
 
+  // Handle menu button presses
+  const handleStartPress = () => {
+    setCurrentScreen('game');
+  };
+
+  const handleFlashCardsPress = () => {
+    setCurrentScreen('table');
+  };
+
+  // Handle element selection in table view
+  const handleElementPress = (element: Element) => {
+    setCurrentElement(elements.findIndex(e => e.symbol === element.symbol));
+    setModalVisible(true);
+  };
+
+  // Convert flat array to 2D array with 3 columns
+  const elementColumns = elements.reduce<Element[][]>((acc, element, index) => {
+    const columnIndex = Math.floor(index % 3);
+    if (!acc[columnIndex]) acc[columnIndex] = [];
+    acc[columnIndex].push(element);
+    return acc;
+  }, []);
+
+  if (!fontsLoaded) {
+    return null;
+  }
+
   return (
     <View style={styles.container}>
-      <StatusBar style="auto" />
-      {showSplash ? (
+      {currentScreen === 'splash' && (
         <SplashScreen
-          showSplash={showSplash}
+          showSplash={!splashComplete}
           fadeAnim={fadeAnim}
-          titleAnimations={titleAnimations}
-          onSplashComplete={() => setShowSplash(false)}
+          onSplashComplete={() => setCurrentScreen('menu')}
         />
-      ) : (
+      )}
+      
+      {currentScreen !== 'splash' && (
         <>
-          <Settings volume={volume} onVolumeChange={handleVolumeChange} />
-          <Text style={styles.title}>Periodic Table Flash Cards</Text>
-          <Card
-            element={elements[currentElement]}
-            colorPair={currentColorPair}
-            frontAnimatedStyle={frontAnimatedStyle}
-            backAnimatedStyle={backAnimatedStyle}
-            onInfoPress={(element) => {
-              setSelectedElement(elementDescriptions[element.symbol]);
-              setModalVisible(true);
-            }}
-            isFlipped={isFlipped}
-          />
-
-          <View style={styles.buttonContainer}>
-            <TouchableOpacity 
-              style={[styles.button, { backgroundColor: currentColorPair[0] }]} 
-              onPress={flipCard}
-            >
-              <Text style={styles.buttonText}>Flip Card</Text>
-            </TouchableOpacity>
-            <TouchableOpacity 
-              style={[styles.button, { backgroundColor: currentColorPair[0] }]} 
-              onPress={nextCard}
-            >
-              <Text style={styles.buttonText}>Next Card</Text>
-            </TouchableOpacity>
-          </View>
+          {currentScreen === 'menu' && (
+            <MenuScreen
+              onStartPress={handleStartPress}
+              onFlashCardsPress={handleFlashCardsPress}
+              onCreditsPress={() => setShowCredits(true)}
+              onSettingsPress={() => setShowSettings(true)}
+              sounds={sounds}
+            />
+          )}
+          
+          {currentScreen === 'game' && (
+            <Card
+              element={elements[currentElement]}
+              colorPair={currentColorPair}
+              frontAnimatedStyle={frontAnimatedStyle}
+              backAnimatedStyle={backAnimatedStyle}
+              onInfoPress={handleElementPress}
+              isFlipped={isFlipped}
+              onBackPress={() => setCurrentScreen('menu')}
+              onFlip={flipCard}
+              onNext={nextCard}
+            />
+          )}
+          
+          {currentScreen === 'table' && (
+            <FlashCardsTable
+              elements={elementColumns}
+              onElementPress={handleElementPress}
+              onBackPress={() => setCurrentScreen('menu')}
+            />
+          )}
+          
           <ElementModal
             isVisible={modalVisible}
-            element={selectedElement}
+            element={elementDescriptions[elements[currentElement].symbol]}
             onClose={() => setModalVisible(false)}
+          />
+          
+          <Settings 
+            isVisible={showSettings}
+            onClose={() => setShowSettings(false)}
+            volume={volume}
+            onVolumeChange={handleVolumeChange}
           />
         </>
       )}
+      
+    
+      <CreditsModal 
+        isVisible={showCredits}
+        onClose={() => setShowCredits(false)}
+      />
+      <StatusBar style="auto" />
     </View>
   );
 }
@@ -185,9 +223,6 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: '#f0f9ff',
-    alignItems: 'center',
-    justifyContent: 'center',
-    padding: 20,
   },
   title: {
     fontSize: 24,
