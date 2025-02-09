@@ -136,7 +136,7 @@ const styles = StyleSheet.create({
   infoButtonText: {
     color: 'white',
     fontSize: 18,
-    fontFamily: 'RobotoMono',
+    fontFamily: 'BebasNeue-Regular',
     textAlign: 'center',
   },
 });

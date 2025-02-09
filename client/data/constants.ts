@@ -1,8 +1,8 @@
 export const SPLASH_TITLE_LINES = [
-  "Periodic",
-  "Table Flash",
-  "Cards"
+  "Elecard"
 ];
+
+export const SPLASH_SUBTITLE = "Master the Elements, One Card at a Time!";
 
 export const FLOATING_ELEMENTS_CONFIG = {
   TOTAL_ELEMENTS: 12,

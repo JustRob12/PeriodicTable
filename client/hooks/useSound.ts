@@ -3,12 +3,8 @@ import { Audio } from 'expo-av';
 import { Sounds } from '../types';
 
 export const useSound = () => {
-  const [sounds, setSounds] = useState<Sounds>({
-    splash: null,
-    flip1: null,
-    flip2: null,
-    science: null
-  });
+  const [sounds, setSounds] = useState<Sounds | null>(null);
+  const [volume, setVolume] = useState(0.7); // Default volume
 
   useEffect(() => {
     async function loadSounds() {
@@ -25,6 +21,12 @@ export const useSound = () => {
 
         // Set science music to loop
         await scienceSound.setIsLoopingAsync(true);
+
+        // Set initial volume for all sounds
+        await splashSound.setVolumeAsync(volume);
+        await flip1Sound.setVolumeAsync(volume);
+        await flip2Sound.setVolumeAsync(volume);
+        await scienceSound.setVolumeAsync(volume);
 
         setSounds({
           splash: splashSound,
@@ -50,17 +52,27 @@ export const useSound = () => {
 
     loadSounds();
 
-    // Cleanup sounds when component unmounts
     return () => {
-      async function unloadSounds() {
-        if (sounds.splash) await sounds.splash.unloadAsync();
-        if (sounds.flip1) await sounds.flip1.unloadAsync();
-        if (sounds.flip2) await sounds.flip2.unloadAsync();
-        if (sounds.science) await sounds.science.unloadAsync();
+      if (sounds) {
+        Object.values(sounds).forEach(sound => {
+          sound.unloadAsync();
+        });
       }
-      unloadSounds();
     };
   }, []);
 
-  return sounds;
+  useEffect(() => {
+    if (sounds) {
+      // Update volume for all sounds when volume changes
+      Object.values(sounds).forEach(async (sound) => {
+        await sound.setVolumeAsync(volume);
+      });
+    }
+  }, [volume, sounds]);
+
+  const handleVolumeChange = (newVolume: number) => {
+    setVolume(newVolume);
+  };
+
+  return { sounds, volume, handleVolumeChange };
 };

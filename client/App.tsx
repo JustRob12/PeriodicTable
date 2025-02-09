@@ -1,35 +1,36 @@
 import React, { useState, useEffect } from 'react';
 import { StyleSheet, Text, View, Animated, TouchableOpacity, Easing } from 'react-native';
 import { StatusBar } from 'expo-status-bar';
-import * as Font from 'expo-font';
 import ElementModal from './components/ElementModal';
 import { elementDescriptions, ElementDescription } from './data/elementDescriptions';
 import { elements } from './data/elements';
 import { colorPairs } from './data/colorPairs';
 import { SPLASH_TITLE_LINES } from './data/constants';
 import { useSound } from './hooks/useSound';
+import { useFonts } from './hooks/useFonts';
 import { SplashScreen } from './components/SplashScreen';
 import { Card } from './components/Card';
+import { Settings } from './components/Settings';
 
 export default function App() {
-  const [fontsLoaded] = Font.useFonts({
-    'RobotoMono': require('./assets/fonts/Orbitron-Bold.ttf'),
-  });
+  const isLoaded = useFonts();
   const [showSplash, setShowSplash] = useState(true);
   const [currentElement, setCurrentElement] = useState(0);
   const [isFlipped, setIsFlipped] = useState(false);
   const [flipAnim] = useState(new Animated.Value(0));
-  const fadeAnim = useState(new Animated.Value(0))[0];
-  const titleAnimations = SPLASH_TITLE_LINES.map(line => 
-    line.split('').map(() => new Animated.Value(0))
+  const [fadeAnim] = useState(new Animated.Value(0));
+  const [titleAnimations] = useState(() => 
+    SPLASH_TITLE_LINES.map(line => 
+      line.split('').map(() => new Animated.Value(0))
+    )
   );
   const [currentColorPair, setCurrentColorPair] = useState(colorPairs[0]);
-  const sounds = useSound();
+  const { sounds, volume, handleVolumeChange } = useSound();
   const [selectedElement, setSelectedElement] = useState<ElementDescription | null>(null);
   const [modalVisible, setModalVisible] = useState(false);
 
   useEffect(() => {
-    if (!sounds.splash) return;
+    if (!sounds?.splash) return;
     
     // Animate the splash screen
     Animated.parallel([
@@ -51,23 +52,23 @@ export default function App() {
       ),
     ]).start();
 
-    // Hide splash screen after 6 seconds total
+    // Hide splash screen after 10 seconds total
     const timer = setTimeout(() => {
-      // Start fade out at 4.5 seconds
+      // Start fade out at 8 seconds
       Animated.timing(fadeAnim, {
         toValue: 0,
-        duration: 1500,
+        duration: 2000,
         useNativeDriver: true,
       }).start(() => setShowSplash(false));
-    }, 4500);
+    }, 8000);
 
     return () => clearTimeout(timer);
-  }, [sounds.splash]);
+  }, [sounds?.splash]);
 
   const flipCard = async () => {
     try {
       // Play flip sound
-      if (sounds.flip2) {
+      if (sounds?.flip2) {
         await sounds.flip2.setPositionAsync(0);
         await sounds.flip2.playAsync();
       }
@@ -87,7 +88,7 @@ export default function App() {
   const nextCard = async () => {
     try {
       // Play next card sound
-      if (sounds.flip1) {
+      if (sounds?.flip1) {
         await sounds.flip1.setPositionAsync(0);
         await sounds.flip1.playAsync();
       }
@@ -129,52 +130,53 @@ export default function App() {
     ],
   };
 
-  if (showSplash) {
-    return (
-      <SplashScreen 
-        showSplash={showSplash}
-        fadeAnim={fadeAnim}
-        titleAnimations={titleAnimations}
-      />
-    );
-  }
-
   return (
     <View style={styles.container}>
       <StatusBar style="auto" />
-      <Text style={styles.title}>Periodic Table Flash Cards</Text>
-      
-      <Card
-        element={elements[currentElement]}
-        colorPair={currentColorPair}
-        frontAnimatedStyle={frontAnimatedStyle}
-        backAnimatedStyle={backAnimatedStyle}
-        onInfoPress={(element) => {
-          setSelectedElement(elementDescriptions[element.symbol]);
-          setModalVisible(true);
-        }}
-        isFlipped ={isFlipped}
-      />
+      {showSplash ? (
+        <SplashScreen
+          showSplash={showSplash}
+          fadeAnim={fadeAnim}
+          titleAnimations={titleAnimations}
+          onSplashComplete={() => setShowSplash(false)}
+        />
+      ) : (
+        <>
+          <Settings volume={volume} onVolumeChange={handleVolumeChange} />
+          <Text style={styles.title}>Periodic Table Flash Cards</Text>
+          <Card
+            element={elements[currentElement]}
+            colorPair={currentColorPair}
+            frontAnimatedStyle={frontAnimatedStyle}
+            backAnimatedStyle={backAnimatedStyle}
+            onInfoPress={(element) => {
+              setSelectedElement(elementDescriptions[element.symbol]);
+              setModalVisible(true);
+            }}
+            isFlipped={isFlipped}
+          />
 
-      <View style={styles.buttonContainer}>
-        <TouchableOpacity 
-          style={[styles.button, { backgroundColor: currentColorPair[0] }]} 
-          onPress={flipCard}
-        >
-          <Text style={styles.buttonText}>Flip Card</Text>
-        </TouchableOpacity>
-        <TouchableOpacity 
-          style={[styles.button, { backgroundColor: currentColorPair[0] }]} 
-          onPress={nextCard}
-        >
-          <Text style={styles.buttonText}>Next Card</Text>
-        </TouchableOpacity>
-      </View>
-      <ElementModal
-        isVisible={modalVisible}
-        element={selectedElement}
-        onClose={() => setModalVisible(false)}
-      />
+          <View style={styles.buttonContainer}>
+            <TouchableOpacity 
+              style={[styles.button, { backgroundColor: currentColorPair[0] }]} 
+              onPress={flipCard}
+            >
+              <Text style={styles.buttonText}>Flip Card</Text>
+            </TouchableOpacity>
+            <TouchableOpacity 
+              style={[styles.button, { backgroundColor: currentColorPair[0] }]} 
+              onPress={nextCard}
+            >
+              <Text style={styles.buttonText}>Next Card</Text>
+            </TouchableOpacity>
+          </View>
+          <ElementModal
+            isVisible={modalVisible}
+            element={selectedElement}
+            onClose={() => setModalVisible(false)}
+          />
+        </>
+      )}
     </View>
   );
 }
